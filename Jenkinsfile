@@ -12,6 +12,8 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
+                sh 'node --version' // Kiểm tra node
+                sh 'npm --version'  // Kiểm tra npm
                 sh 'npm install'
             }
         }
