@@ -10,7 +10,13 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/LVNAnh/product-api.git', branch: 'main'
+                echo 'Cloning source code...'
+                retry(3) { // Thử lại nếu gặp lỗi
+                    sh '''
+                    git config --global http.postBuffer 524288000
+                    git clone https://github.com/LVNAnh/product-api.git .
+                    '''
+                }
             }
         }
 
@@ -29,7 +35,7 @@ pipeline {
             steps {
                 echo 'Starting Node.js server container...'
                 sh '''
-                docker run -d --name nodejs-server --network jenkins-net -p 3000:3000 nodejs-server
+                docker run -d --name nodejs-server -p 3000:3000 nodejs-server
                 '''
             }
         }
