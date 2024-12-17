@@ -4,39 +4,35 @@ pipeline {
     stages {
         stage('Clean Workspace') {
             steps {
-                cleanWs()
+                echo 'Cleaning workspace...'
+                cleanWs() 
             }
         }
 
         stage('Checkout') {
             steps {
                 echo 'Cloning source code...'
-                retry(3) { // Thử lại nếu gặp lỗi
-                    sh '''
-                    git config --global http.postBuffer 524288000
-                    git clone https://github.com/LVNAnh/product-api.git .
-                    '''
-                }
+                git url: 'https://github.com/LVNAnh/product-api.git', branch: 'main'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Install Dependencies') {
             steps {
-                echo 'Building Docker image...'
-                sh '''
-                docker stop nodejs-server || true
-                docker rm nodejs-server || true
-                docker build -t nodejs-server .
-                '''
+                echo 'Installing dependencies...'
+                sh 'node --version' 
+                sh 'npm --version'
+                sh 'npm install'
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Run Server') {
             steps {
-                echo 'Starting Node.js server container...'
-                sh '''
-                docker run -d --name nodejs-server -p 3000:3000 nodejs-server
-                '''
+                echo 'Stopping existing Node.js server (if any)...'
+                sh 'pkill -f "node index.js" || true' 
+
+                echo 'Starting new Node.js server...'
+                sh 'nohup node index.js > output.log 2>&1 &'
+                sleep 5 
             }
         }
 
@@ -46,12 +42,19 @@ pipeline {
                 sh 'curl http://localhost:3000/product'
             }
         }
+
+        stage('Display Logs') {
+            steps {
+                echo 'Displaying server logs...'
+                sh 'cat output.log'
+            }
+        }
     }
 
     post {
         always {
-            echo 'Stopping server container after pipeline...'
-            sh 'docker stop nodejs-server || true'
+            echo 'Pipeline completed.'
+            sh 'pkill -f "node index.js" || true' 
         }
     }
 }
