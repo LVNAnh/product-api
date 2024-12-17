@@ -5,7 +5,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Cloning source code...'
-                git url: 'file:///F:/Code/DevOps/product-api', branch: 'main'
+                git url: 'https://github.com/LVNAnh/product-api.git', branch: 'main'
             }
         }
 
