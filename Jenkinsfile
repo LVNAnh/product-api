@@ -4,35 +4,33 @@ pipeline {
     stages {
         stage('Clean Workspace') {
             steps {
-                echo 'Cleaning workspace...'
-                cleanWs() 
+                cleanWs()
             }
         }
 
         stage('Checkout') {
             steps {
-                echo 'Cloning source code...'
                 git url: 'https://github.com/LVNAnh/product-api.git', branch: 'main'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
-                echo 'Installing dependencies...'
-                sh 'node --version' 
-                sh 'npm --version'
-                sh 'npm install'
+                echo 'Building Docker image...'
+                sh '''
+                docker stop nodejs-server || true
+                docker rm nodejs-server || true
+                docker build -t nodejs-server .
+                '''
             }
         }
 
-        stage('Run Server') {
+        stage('Run Docker Container') {
             steps {
-                echo 'Stopping existing Node.js server (if any)...'
-                sh 'pkill -f "node index.js" || true' 
-
-                echo 'Starting new Node.js server...'
-                sh 'nohup node index.js > output.log 2>&1 &'
-                sleep 5 
+                echo 'Starting Node.js server container...'
+                sh '''
+                docker run -d --name nodejs-server --network jenkins-net -p 3000:3000 nodejs-server
+                '''
             }
         }
 
@@ -42,19 +40,12 @@ pipeline {
                 sh 'curl http://localhost:3000/product'
             }
         }
-
-        stage('Display Logs') {
-            steps {
-                echo 'Displaying server logs...'
-                sh 'cat output.log'
-            }
-        }
     }
 
     post {
         always {
-            echo 'Pipeline completed.'
-            sh 'pkill -f "node index.js" || true' 
+            echo 'Stopping server container after pipeline...'
+            sh 'docker stop nodejs-server || true'
         }
     }
 }
